@@ -39,7 +39,24 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>get photos from gallery</string>
+	<key>NSCameraUsageDescription</key>
+	<string>take snapshots </string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>capture sounds of the user</string>
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<false/>
-</dict>
+	<key>CFBundleURLTypes</key>
+	<array>
+	<dict>
+		<key>CFBundleTypeRole</key>
+		<string>Editor</string>
+		<key>CFBundleURLSchemes</key>
+		<array>
+			<string>com.googleusercontent.apps.491054606396-fi4ivl75nu2i1i498l3eia1bqvfafmnt</string>
+		</array>
+	</dict>
+	</array>
+	</dict>
 </plist>
