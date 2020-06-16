@@ -16,13 +16,16 @@ class _ChatPageState extends State<ChatPage> {
   final GoogleSignIn googleSignIn = new GoogleSignIn();
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   FirebaseUser _currentUser;
+  bool isLoading = false;
 
   @override
   void initState() {
     super.initState();
 
     FirebaseAuth.instance.onAuthStateChanged.listen((user) {
-      this._currentUser = user;
+      setState(() {
+        this._currentUser = user;
+      });
     });
   }
 
@@ -65,18 +68,27 @@ class _ChatPageState extends State<ChatPage> {
     Map<String, dynamic> data = {
       "uid": user.uid,
       "senderName": user.displayName,
-      "senderPhotoUrl": user.photoUrl  
+      "senderPhotoUrl": user.photoUrl,
+      "time": Timestamp.now()
     };
 
     if (imgFile != null) {
       StorageUploadTask task = FirebaseStorage.instance
           .ref()
-          .child(DateTime.now().millisecondsSinceEpoch.toString())
+          .child(user.uid + DateTime.now().millisecondsSinceEpoch.toString())
           .putFile(imgFile);
+
+      setState(() {
+        this.isLoading = true;
+      });
 
       StorageTaskSnapshot taskSnapshot = await task.onComplete;
       String url = await taskSnapshot.ref.getDownloadURL();
       data["imgUrl"] = url;
+
+      setState(() {
+        this.isLoading = false;
+      });
     }
 
     if (text != null) {
@@ -85,18 +97,39 @@ class _ChatPageState extends State<ChatPage> {
     Firestore.instance.collection('messages').add(data);
   }
 
+  void logout() {
+    FirebaseAuth.instance.signOut();
+    googleSignIn.signOut();
+    this._scaffoldKey.currentState.showSnackBar(SnackBar(
+          content: Text('Você saiu com sucesso.'),
+          backgroundColor: Colors.green,
+        ));
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       key: _scaffoldKey,
       appBar: AppBar(
-        title: Text("We-Chat"),
+        centerTitle: true,
+        title: Text(this._currentUser != null
+            ? "Olá, ${this._currentUser.displayName}"
+            : "We-Chat"),
         elevation: 0,
+        actions: <Widget>[
+          this._currentUser != null
+              ? IconButton(
+                  icon: Icon(Icons.exit_to_app), onPressed: this.logout)
+              : Container(),
+        ],
       ),
       body: Column(children: <Widget>[
         Expanded(
             child: StreamBuilder<QuerySnapshot>(
-                stream: Firestore.instance.collection('messages').snapshots(),
+                stream: Firestore.instance
+                    .collection('messages')
+                    .orderBy('time')
+                    .snapshots(),
                 builder: (context, snapshot) {
                   switch (snapshot.connectionState) {
                     case ConnectionState.none:
@@ -110,10 +143,11 @@ class _ChatPageState extends State<ChatPage> {
                           itemCount: documents.length,
                           reverse: true,
                           itemBuilder: (context, index) {
-                            return ChatMessage(documents[index].data, true);
+                            return ChatMessage(documents[index].data, documents[index].data['uid'] == this._currentUser?.uid);
                           });
                   }
                 })),
+        this.isLoading ? LinearProgressIndicator() : Container(),
         TextComposer(this._sendMessage)
       ]),
     );
